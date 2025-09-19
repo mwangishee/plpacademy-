@@ -1,0 +1,97 @@
+# CORD-19 Metadata Analysis 
+
+# Part 1: Import Libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from collections import Counter
+import re
+
+# Optional: Make plots look nicer
+sns.set(style="whitegrid")
+
+# Part 2: Load and Explore Data
+
+# Load the metadata.csv file
+# Make sure the CSV is in the same folder as this script or provide full path
+df = pd.read_csv("metadata.csv")
+
+# Preview first few rows
+print("First 5 rows of dataset:")
+print(df.head())
+
+# Check shape (rows, columns)
+print("\nDataset shape:", df.shape)
+
+# Data types and info
+print("\nDataset info:")
+print(df.info())
+
+# Check missing values
+print("\nMissing values per column:")
+print(df.isnull().sum())
+
+# Part 3: Data Cleaning & Preparation
+
+# Drop rows without publish_time (important for time-based analysis)
+df = df.dropna(subset=["publish_time"])
+
+# Convert publish_time to datetime
+df["publish_time"] = pd.to_datetime(df["publish_time"], errors="coerce")
+
+# Extract publication year
+df["year"] = df["publish_time"].dt.year
+
+# Create new column: abstract word count
+df["abstract_word_count"] = df["abstract"].fillna("").apply(lambda x: len(x.split()))
+
+# Quick check after cleaning
+print("\nAfter cleaning, first 5 rows:")
+print(df.head())
+
+# Part 4: Basic Analysis & Visualization
+
+# a)Number of papers per year
+year_counts = df["year"].value_counts().sort_index()
+plt.figure(figsize=(8,5))
+plt.bar(year_counts.index, year_counts.values, color="skyblue")
+plt.title("Number of Publications by Year")
+plt.xlabel("Year")
+plt.ylabel("Number of Papers")
+plt.show()
+
+# b)Top 10 journals
+top_journals = df["journal"].value_counts().head(10)
+plt.figure(figsize=(10,5))
+sns.barplot(x=top_journals.values, y=top_journals.index)
+plt.title("Top 10 Journals Publishing COVID-19 Research")
+plt.xlabel("Number of Papers")
+plt.ylabel("Journal")
+plt.show()
+
+# c)Most frequent words in paper titles
+titles = df["title"].dropna().str.lower()
+words = Counter()
+for title in titles:
+    words.update(re.findall(r'\b\w+\b', title))
+top_words = words.most_common(20)
+
+# Plot top 20 words
+words_df = pd.DataFrame(top_words, columns=["word", "count"])
+plt.figure(figsize=(10,5))
+sns.barplot(x="count", y="word", data=words_df)
+plt.title("Top 20 Words in Paper Titles")
+plt.show()
+
+# 4)Distribution by source
+if "source_x" in df.columns:
+    source_counts = df["source_x"].value_counts()
+    plt.figure(figsize=(6,4))
+    sns.barplot(x=source_counts.index, y=source_counts.values)
+    plt.title("Distribution of Papers by Source")
+    plt.xlabel("Source")
+    plt.ylabel("Number of Papers")
+    plt.xticks(rotation=45)
+    plt.show()
+
+
